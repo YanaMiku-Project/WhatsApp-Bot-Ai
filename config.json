@@ -1,0 +1,16 @@
+{
+   "owner": "6285793589243",
+   "owner_name": "Iyuzaki Yanagi",
+   "database": "data",
+   "ram_limit": "900mb",
+   "cooldown": 3,
+   "timer": 180000,
+   "timeout": 1800000,
+   "blocks": ["994", "91", "92"],
+   "evaluate_chars":  ["=>", "~>", "<", ">", "$"],
+   "pairing": {
+      "state": true,
+      "number": 62857935892430
+   },
+   "replit_url": ""
+}
