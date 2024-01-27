@@ -146,14 +146,14 @@ $ pkg install nodejs
 ```
 $ pkg install ffmpeg
 ```
-```
-$ git clone https://github.com/YanaMiku-Project/WhatsApp-Bot-Ai
-```
 
 ## Running
 ```
 $ cd storage/downloads
 ```
+```
+$ git clone https://github.com/YanaMiku-Project/WhatsApp-Bot-Ai
+``` 
 ```
 $ cd WhatsApp-Bot-Ai
 ```
