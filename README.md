@@ -16,7 +16,7 @@
 
 # Donate Links
 
-<b>QRIS</b>: <code>https://iili.io/JuQ2gqu.jpg</code></br>
+<b>QRIS</b>: <code>https://i.ibb.co/YpbzFYy/Screenshot-20230417-051902.png</code></br>
 **satu untuk semua, sedikit apapun donasi kamu sangat berharga ❤️**
 
  ## Terimakasih
