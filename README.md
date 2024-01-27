@@ -37,13 +37,8 @@ There are 2 configuration files namely ```.env``` and ```config.json```, adjust 
 
 ```Javascript
 {
-   "owner": "6285793589243", // nomor owner
-   "owner_name": "Iyuzaki Yanagi", // nama owner
    "database": "database", // nama database
-   "limit": 20, // limit per hari
    "ram_limit": "500mb", // ram limit server
-   "max_upload": 50, 
-   "max_upload_free": 10,
    "cooldown": 3, // anti spam
    "timer": 180000, // waktu banned
    "timeout": 1800000, 
@@ -60,10 +55,6 @@ There are 2 configuration files namely ```.env``` and ```config.json```, adjust 
 ---
 
 ```.env
-### Api : https://api.neoxr.my.id
-API_ENDPOINT = 'https://api.neoxr.my.id/api'
-API_KEY = 'your_key'
-
 ### Database : https://www.mongodb.com/
 DATABASE_URL = ''
 
@@ -156,7 +147,7 @@ $ pkg install nodejs
 $ pkg install ffmpeg
 ```
 ```
-$ git clone https://github.com/YanaMiku-Project/Bot-WhatsApp
+$ git clone https://github.com/YanaMiku-Project/WhatsApp-Bot-Ai
 ```
 
 ## Running
@@ -164,7 +155,7 @@ $ git clone https://github.com/YanaMiku-Project/Bot-WhatsApp
 $ cd storage/downloads
 ```
 ```
-$ cd Bot-WhatsApp
+$ cd WhatsApp-Bot-Ai
 ```
 ```
 $ npm install
