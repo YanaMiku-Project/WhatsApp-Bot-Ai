@@ -3,13 +3,14 @@
 <h1 align="center">YanaMiku - BOTz (YanaMiku-Project)</h1>
 <em><h5 align="center">(Bot WhatsApp Simple By Iyuzaki Yanagi)</h5></em>
  
- 
+ ### Demo Bot
+ [ In Here ](https://chat.whatsapp.com/KHcnBB9l19D1BYLHzxGb5i)
  # Kontak Creator
 
  Untuk pertanyaan apa pun mengenai perizinan atau penggunaan, silakan hubungi pemilik proyek
  - [ Email ](mailto:support@yanamiku.shop).
  - [ WhatsApp ](https://wa.me/6285793589243?text=Hallo). 
- - [ Group ](https://chat.whatsapp.com/HzaF888SGaMJhEq24wP29B).
+ - [ Group YanaMiku ](https://chat.whatsapp.com/HzaF888SGaMJhEq24wP29B).
  - [ Infomation ](https://whatsapp.com/channel/0029VaI3mdy3AzNSbIXT9C3L)
 
  Dengan menggunakan atau berinteraksi dengan proyek ini, Anda setuju untuk terikat oleh syarat dan ketentuan lisensi ini.
