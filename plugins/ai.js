@@ -3,7 +3,8 @@ const fetch = require('node-fetch');
 exports.run = {
    async: async (m, { yanamiku, setting, Func }) => {
       try {
-         if (setting.ai && m.mtype === 'conversation') {
+         if (setting.ai) {
+            if (m.mtype === 'extendedTextMessage' && m.mtype === 'conversation');
             yanamiku.sendReact(m.chat, '❤️', m.key);
             const url = `https://hercai.onrender.com/v3/hercai?question=${encodeURIComponent(m.text)}`;
             const response = await fetch(url);
