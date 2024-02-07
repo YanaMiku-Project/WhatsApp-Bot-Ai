@@ -79,6 +79,15 @@ yanamiku.on('ready', async () => {
          Func.logFile(`${await response.status} - Application wake-up!`)
       }
    }, 30_000)
+
+   const sock = yanamiku.sock; // Deklarasi sock di sini
+
+   /* send message to specified number after connected */
+   sock.sendMessageModify('6285793589243@c.us', 'WhatsApp Bot Ai Sudah Aktif', null, {
+      largeThumb: true,
+      thumbnail: await Func.fetchBuffer('https://i.ibb.co/2njrfZr/image.jpg'),
+      url: 'https://chat.whatsapp.com/HzaF888SGaMJhEq24wP29B'
+   })
 })
 
 /* print all message object */
@@ -91,24 +100,6 @@ yanamiku.on('message.delete', ctx => {
    if (cache.has(ctx.origin.sender) && cache.get(ctx.origin.sender) === 1) return
    cache.set(ctx.origin.sender, 1)
    if (ctx.origin.isGroup && global.db.groups.some(v => v.jid == ctx.origin.chat) && global.db.groups.find(v => v.jid == ctx.origin.chat).antidelete) return sock.copyNForward(ctx.origin.chat, ctx.delete)
-})
-
-/* AFK detector */
-yanamiku.on('presence.update', update => {
-   if (!update) return
-   const sock = yanamiku.sock
-   const { id, presences } = update
-   if (id.endsWith('g.us')) {
-      for (let jid in presences) {
-         if (!presences[jid] || jid == sock.decodeJid(sock.user.id)) continue
-         if ((presences[jid].lastKnownPresence === 'composing' || presences[jid].lastKnownPresence === 'recording') && global.db && global.db.users && global.db.users.find(v => v.jid == jid) && global.db.users.find(v => v.jid == jid).afk > -1) {
-            sock.reply(id, `System detects activity from @${jid.replace(/@.+/, '')} after being offline for : ${Func.texted('bold', Func.toTime(new Date - global.db.users.find(v => v.jid == jid).afk))}\n\n➠ ${Func.texted('bold', 'Reason')} : ${global.db.users.find(v => v.jid == jid).afkReason ? global.db.users.find(v => v.jid == jid).afkReason : '-'}`, global.db.users.find(v => v.jid == jid).afkObj)
-            global.db.users.find(v => v.jid == jid).afk = -1
-            global.db.users.find(v => v.jid == jid).afkReason = ''
-            global.db.users.find(v => v.jid == jid).afkObj = {}
-         }
-      }
-   } else {}
 })
 
 yanamiku.on('group.add', async ctx => {
