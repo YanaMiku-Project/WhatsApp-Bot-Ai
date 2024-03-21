@@ -6,7 +6,7 @@ exports.run = {
          if (setting.ai) {
             if (m.mtype === 'extendedTextMessage' && m.mtype === 'conversation');
             yanamiku.sendReact(m.chat, '❤️', m.key);
-            const url = `https://hercai.onrender.com/v3/hercai?question=${encodeURIComponent(m.text)}`;
+            const url = `https://api-yanamiku.vercel.app/api/ai/hercai?message=${encodeURIComponent(m.text)}`;
             const response = await fetch(url);
             const json = await response.json();
 
