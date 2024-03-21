@@ -1,27 +1,43 @@
-const { Function: Func, Logs, Scraper, InvCloud } = new(require('@neoxr/wb'))
+const { Function: Func, Logs, Scraper, Cooldown, Spam, InvCloud } = new(require('@neoxr/wb'))
 const env = require('./config.json')
 const cron = require('node-cron')
 const cache = new(require('node-cache'))({
    stdTTL: env.cooldown
 })
+const cooldown = new Cooldown(env.cooldown)
+const spam = new Spam({
+   RESET_TIMER: env.cooldown,
+   HOLD_TIMER: env.timeout,
+   PERMANENT_THRESHOLD: env.permanent_threshold,
+   NOTIFY_THRESHOLD: env.notify_threshold,
+   BANNED_THRESHOLD: env.banned_threshold
+})
+
 module.exports = async (yanamiku, ctx) => {
-   const { store, m, body, prefix, plugins, commands, args, command, text, prefixes } = ctx
+   const { store, m, body, prefix, plugins, commands, args, command, text, prefixes, core } = ctx
+   // const context = m.message[m.mtype] || m.message.viewOnceMessageV2.message[m.mtype]
+   // process.env['E_MSG'] = context.contextInfo ? Number(context.contextInfo.expiration) : 0
    try {
       // "InvCloud" reduces RAM usage and minimizes errors during rewrite (according to recommendations/suggestions from Baileys)
       require('./lib/system/schema')(m, env), InvCloud(store)
-      const isOwner = [env.owner, yanamiku.decodeJid(yanamiku.user.id).split`@` [0], ...global.db.setting.owners].map(v => v + '@s.whatsapp.net').includes(m.sender)
-      const isPrem = (global.db.users.some(v => v.jid == m.sender) && global.db.users.find(v => v.jid == m.sender).premium)
+      const groupSet = global.db.groups.find(v => v.jid === m.chat)
+      const chats = global.db.chats.find(v => v.jid === m.chat)
+      const users = global.db.users.find(v => v.jid === m.sender)
+      const setting = global.db.setting
+      const isOwner = [yanamiku.decodeJid(yanamiku.user.id).replace(/@.+/, ''), env.owner, ...setting.owners].map(v => v + '@s.whatsapp.net').includes(m.sender)
+      const isPrem = users && users.premium || isOwner
       const groupMetadata = m.isGroup ? await yanamiku.groupMetadata(m.chat) : {}
       const participants = m.isGroup ? groupMetadata.participants : [] || []
       const adminList = m.isGroup ? await yanamiku.groupAdmin(m.chat) : [] || []
       const isAdmin = m.isGroup ? adminList.includes(m.sender) : false
       const isBotAdmin = m.isGroup ? adminList.includes((yanamiku.user.id.split`:` [0]) + '@s.whatsapp.net') : false
       const blockList = typeof await (await yanamiku.fetchBlocklist()) != 'undefined' ? await (await yanamiku.fetchBlocklist()) : []
-      const groupSet = global.db.groups.find(v => v.jid == m.chat),
-         chats = global.db.chats.find(v => v.jid == m.chat),
-         users = global.db.users.find(v => v.jid == m.sender),
-         setting = global.db.setting
-      Logs(yanamiku, m, false) /* 1 = print all message, 0 = print only cmd message */
+      const isSpam = spam.detection(yanamiku, m, {
+         prefix, command, commands, users, cooldown,
+         show: 'all', // choose 'all' or 'command-only'
+         banned_times: users.ban_times,
+         simple: false
+      })
       if (!setting.online) yanamiku.sendPresenceUpdate('unavailable', m.chat)
       if (setting.online) {
          yanamiku.sendPresenceUpdate('available', m.chat)
@@ -37,6 +53,7 @@ module.exports = async (yanamiku, ctx) => {
          hit: 0,
          spam: 0
       })
+      if (!setting.multiprefix) setting.noprefix = false
       if (setting.debug && !m.fromMe && isOwner) yanamiku.reply(m.chat, Func.jsonFormat(m), m)
       if (m.isGroup && !groupSet.stay && (new Date * 1) >= groupSet.expired && groupSet.expired != 0) {
          return yanamiku.reply(m.chat, Func.texted('italic', '🚩 Bot time has expired and will leave from this group, thank you.', null, {
@@ -54,7 +71,10 @@ module.exports = async (yanamiku, ctx) => {
          })
       }     
       if (m.isGroup) groupSet.activity = new Date() * 1
-      if (users) users.lastseen = new Date() * 1
+      if (users) {
+         users.name = m.pushName
+         users.lastseen = new Date() * 1
+      }
       if (chats) {
          chats.chat += 1
          chats.lastseen = new Date * 1
@@ -83,6 +103,10 @@ module.exports = async (yanamiku, ctx) => {
             groupSet.member[m.sender].lastseen = now
          }
       }
+      if (isSpam && /(BANNED|NOTIFY|TEMPORARY)/.test(isSpam.state)) return yanamiku.reply(m.chat, Func.texted('bold', `🚩 ${isSpam.msg}`), m)
+      if (isSpam && /HOLD/.test(isSpam.state)) return
+      if (body && !setting.self && !setting.noprefix && !core.corePrefix.includes(core.prefix) && commands.includes(core.command) && !env.evaluate_chars.includes(core.command)) return yanamiku.reply(m.chat, `🚩 *Prefix needed!*, this bot uses prefix : *[ ${setting.multiprefix ? setting.prefix.join(', ') : setting.onlyprefix} ]*\n\n➠ ${setting.multiprefix ? setting.prefix[0] : setting.onlyprefix}${core.command} ${text || ''}`, m)
+      if (body && !setting.self && core.prefix != setting.onlyprefix && commands.includes(core.command) && !setting.multiprefix && !env.evaluate_chars.includes(core.command)) return yanamiku.reply(m.chat, `🚩 *Incorrect prefix!*, this bot uses prefix : *[ ${setting.onlyprefix} ]*\n\n➠ ${setting.onlyprefix + core.command} ${text || ''}`, m)
       const matcher = Func.matcher(command, commands).filter(v => v.accuracy >= 60)
       if (prefix && !commands.includes(command) && matcher.length > 0 && !setting.self) {
          if (!m.isGroup || (m.isGroup && !groupSet.mute)) return yanamiku.reply(m.chat, `🚩 Command you are using is wrong, try the following recommendations :\n\n${matcher.map(v => '➠ *' + (prefix ? prefix : '') + v.string + '* (' + v.accuracy + '%)').join('\n')}`, m)
@@ -90,8 +114,6 @@ module.exports = async (yanamiku, ctx) => {
       if (body && prefix && commands.includes(command) || body && !prefix && commands.includes(command) && setting.noprefix || body && !prefix && commands.includes(command) && env.evaluate_chars.includes(command)) {
          if (setting.error.includes(command)) return yanamiku.reply(m.chat, Func.texted('bold', `🚩 Command _${(prefix ? prefix : '') + command}_ disabled.`), m)
          if (!m.isGroup && env.blocks.some(no => m.sender.startsWith(no))) return yanamiku.updateBlockStatus(m.sender, 'block')
-         if (cache.has(m.sender) && cache.get(m.sender) == 'on_hold' && !isOwner) return
-         cache.set(m.sender, 'on_hold')
          if (commands.includes(command)) {
             users.hit += 1
             users.usebot = new Date() * 1
@@ -114,11 +136,10 @@ module.exports = async (yanamiku, ctx) => {
                }).then(() => chats.lastchat = new Date() * 1)
                continue
             }
-            if (!['me', 'owner', 'exec'].includes(name) && users && (users.banned || new Date - users.banTemp < env.timeout)) continue
+            if (!['me', 'owner', 'exec'].includes(name) && users && (users.banned || new Date - users.ban_temporary < env.timeout)) continue
             if (m.isGroup && !['activation', 'groupinfo'].includes(name) && groupSet.mute) continue
             if (cmd.cache && cmd.location) {
-               let file = require.resolve(cmd.location)
-               Func.reload(file)
+               Func.updateFile(cmd.location)
             }
             if (cmd.owner && !isOwner) {
                yanamiku.reply(m.chat, global.status.owner, m)
@@ -167,14 +188,12 @@ module.exports = async (yanamiku, ctx) => {
          }
       } else {
          const is_events = Object.fromEntries(Object.entries(plugins).filter(([name, prop]) => !prop.run.usage))
-         if (cache.has(m.sender) && cache.get(m.sender) == 'on_hold' && !isOwner) return
-         cache.set(m.sender, 'on_hold')
          for (let name in is_events) {
             let event = is_events[name].run
             if (m.fromMe || m.chat.endsWith('broadcast') || /pollUpdate/.test(m.mtype)) continue
             if (!m.isGroup && env.blocks.some(no => m.sender.startsWith(no))) return yanamiku.updateBlockStatus(m.sender, 'block')
             if (setting.self && !['menfess_ev', 'anti_link', 'anti_tagall', 'anti_virtex', 'filter'].includes(event.pluginName) && !isOwner && !m.fromMe) continue
-            if (!['anti_link', 'anti_tagall', 'anti_virtex', 'filter'].includes(name) && users && (users.banned || new Date - users.banTemp < env.timeout)) continue
+            if (!['anti_link', 'anti_tagall', 'anti_virtex', 'filter'].includes(name) && users && (users.banned || new Date - users.ban_temporary < env.timeout)) continue
             if (!['anti_link', 'anti_tagall', 'anti_virtex', 'filter'].includes(name) && groupSet && groupSet.mute) continue
             if (!m.isGroup && !['menfess_ev', 'chatbot', 'auto_download'].includes(name) && chats && !isPrem && !users.banned && new Date() * 1 - chats.lastchat < env.timeout) continue
             if (!m.isGroup && setting.groupmode && !['system_ev', 'menfess_ev', 'chatbot', 'auto_download'].includes(name) && !isPrem) return yanamiku.sendMessageModify(m.chat, `⚠️ Using bot in private chat only for premium user, want to upgrade to premium plan ? send *${prefixes[0]}premium* to see benefit and prices.`, m, {
@@ -183,8 +202,7 @@ module.exports = async (yanamiku, ctx) => {
                url: setting.link
             }).then(() => chats.lastchat = new Date() * 1)
             if (event.cache && event.location) {
-               let file = require.resolve(event.location)
-               Func.reload(file)
+               Func.updateFile(event.location)
             }
             if (event.error) continue
             if (event.owner && !isOwner) continue
@@ -203,7 +221,7 @@ module.exports = async (yanamiku, ctx) => {
    } catch (e) {
       if (/(undefined|overlimit|timed|timeout|users|item|time)/ig.test(e.message)) return
       console.log(e)
-      if (!m.fromMe) return m.reply(Func.jsonFormat(new Error('neoxr-bot encountered an error :' + e)))
+      if (!m.fromMe) return m.reply(Func.jsonFormat(new Error('WhatsApp Bot encountered an error :' + e)))
    }
    Func.reload(require.resolve(__filename))
 }
